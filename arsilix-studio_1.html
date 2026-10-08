@@ -237,6 +237,11 @@
   }
   .field input:focus,.field select:focus,.field textarea:focus{outline:none;border-color:var(--blue);}
   .field textarea{resize:vertical;min-height:100px;}
+  .field input.invalid{border-color:#ff5c7a;}
+  .hp-field{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden;}
+  .form-status{margin-top:12px;font-size:13px;color:var(--gray);min-height:1em;}
+  .form-status.ok{color:#3ddc97;}
+  .form-status.err{color:#ff5c7a;}
   .contact-info .info-item{display:flex;gap:16px;margin-bottom:28px;}
   .info-icon{width:42px;height:42px;border-radius:12px;background:rgba(0,212,255,.1);border:1px solid rgba(0,212,255,.25);flex-shrink:0;display:flex;align-items:center;justify-content:center;color:var(--blue);font-size:16px;}
   .contact-info h4{font-size:14.5px;margin-bottom:4px;}
@@ -475,27 +480,30 @@
         <h2>Tell us about your project</h2>
       </div>
       <div class="contact-grid">
-        <form class="form-card reveal" onsubmit="event.preventDefault(); this.querySelector('.btn').textContent='Message Sent ✓';">
+        <form class="form-card reveal" id="lead-form" novalidate>
           <div class="form-row">
-            <div class="field"><label>Name</label><input type="text" placeholder="Jane Doe" required></div>
-            <div class="field"><label>Email</label><input type="email" placeholder="jane@company.com" required></div>
+            <div class="field"><label for="lf-name">Name</label><input id="lf-name" name="name" type="text" placeholder="Jane Doe" autocomplete="name" required></div>
+            <div class="field"><label for="lf-email">Work Email</label><input id="lf-email" name="email" type="email" placeholder="jane@company.com" autocomplete="email" required></div>
           </div>
           <div class="form-row">
-            <div class="field"><label>Company</label><input type="text" placeholder="Company name"></div>
-            <div class="field"><label>Project Type</label>
-              <select><option>AI Development</option><option>Website</option><option>Mobile App</option><option>Branding</option><option>Other</option></select>
+            <div class="field"><label for="lf-company">Company</label><input id="lf-company" name="company" type="text" placeholder="Company name" autocomplete="organization"></div>
+            <div class="field"><label for="lf-type">Project Type</label>
+              <select id="lf-type" name="project_type"><option>AI Development</option><option>SaaS / Web App</option><option>Website</option><option>Mobile App</option><option>Branding</option><option>Other</option></select>
             </div>
           </div>
           <div class="form-row">
-            <div class="field"><label>Budget</label>
-              <select><option>$5k – $15k</option><option>$15k – $50k</option><option>$50k – $150k</option><option>$150k+</option></select>
+            <div class="field"><label for="lf-budget">Budget</label>
+              <select id="lf-budget" name="budget"><option>$5k – $15k</option><option>$15k – $50k</option><option>$50k – $150k</option><option>$150k+</option></select>
             </div>
-            <div class="field"><label>Timeline</label>
-              <select><option>ASAP</option><option>1–3 months</option><option>3–6 months</option><option>Flexible</option></select>
+            <div class="field"><label for="lf-timeline">Timeline</label>
+              <select id="lf-timeline" name="timeline"><option>ASAP</option><option>1–3 months</option><option>3–6 months</option><option>Flexible</option></select>
             </div>
           </div>
-          <div class="field"><label>Project Details</label><textarea placeholder="Tell us what you're building..."></textarea></div>
-          <button class="btn btn-primary" style="width:100%;">Request Proposal</button>
+          <div class="field"><label for="lf-details">Project Details</label><textarea id="lf-details" name="details" placeholder="Tell us what you're building..."></textarea></div>
+          <!-- Honeypot: hidden from people, bots fill it in -->
+          <div class="hp-field" aria-hidden="true"><label for="lf-website">Website</label><input id="lf-website" name="website" type="text" tabindex="-1" autocomplete="off"></div>
+          <button type="submit" class="btn btn-primary" style="width:100%;">Request Proposal</button>
+          <p class="form-status" role="status" aria-live="polite"></p>
         </form>
         <div class="contact-info reveal">
           <div class="info-item"><div class="info-icon">✉</div><div><h4>Email</h4><p>hello@arsilixstudio.com</p></div></div>
@@ -541,10 +549,11 @@
       <div>
         <h5>Stay in the loop</h5>
         <p>Occasional notes on AI, design, and product — no spam.</p>
-        <div class="newsletter">
-          <input type="email" placeholder="you@email.com">
-          <button class="btn btn-primary" style="padding:11px 18px;">Join</button>
-        </div>
+        <form class="newsletter" id="newsletter-form" novalidate>
+          <input type="email" name="email" placeholder="you@email.com" aria-label="Email address" autocomplete="email" required>
+          <button type="submit" class="btn btn-primary" style="padding:11px 18px;">Join</button>
+        </form>
+        <p class="form-status" id="newsletter-status" role="status" aria-live="polite"></p>
       </div>
     </div>
     <div class="footer-bottom">
@@ -776,6 +785,141 @@ document.querySelectorAll('.faq-item').forEach(item=>{
     document.querySelectorAll('.faq-item').forEach(i=>{ i.classList.remove('open'); i.querySelector('.faq-a').style.maxHeight=null; });
     if(!isOpen){ item.classList.add('open'); const a=item.querySelector('.faq-a'); a.style.maxHeight = a.scrollHeight+'px'; }
   });
+});
+</script>
+<!-- ---------- LEAD CAPTURE ----------
+  Sends contact + newsletter submissions to HubSpot (Forms API v3).
+  Setup steps: lead-gen/README.md. Until formGuid is set, submissions
+  fall back to a pre-filled email so no lead is ever dropped. -->
+<script>
+const LEAD_CONFIG = {
+  hubspotPortalId: '247639719',
+  hubspotRegion: 'na1',          // 'eu1' if your HubSpot account is hosted in the EU
+  contactFormGuid: '',           // HubSpot form ID for "Website – Project Inquiry"
+  newsletterFormGuid: '',        // HubSpot form ID for "Website – Newsletter"
+  fallbackEmail: 'hello@arsilixstudio.com',
+};
+
+/* Load HubSpot tracking code: page views, hutk cookie for attribution */
+(function(){
+  if(!LEAD_CONFIG.hubspotPortalId) return;
+  const t=document.createElement('script');
+  t.id='hs-script-loader'; t.async=true; t.defer=true;
+  t.src=`https://js${LEAD_CONFIG.hubspotRegion==='eu1'?'-eu1':''}.hs-scripts.com/${LEAD_CONFIG.hubspotPortalId}.js`;
+  document.head.appendChild(t);
+})();
+
+/* Persist first-touch UTM params across page views */
+const leadAttribution = (function(){
+  const keys=['utm_source','utm_medium','utm_campaign','utm_term','utm_content'];
+  const qs=new URLSearchParams(location.search);
+  let stored={};
+  try{ stored=JSON.parse(localStorage.getItem('arsilix_utm')||'{}'); }catch(e){}
+  if(keys.some(k=>qs.get(k))){
+    stored={}; keys.forEach(k=>{ if(qs.get(k)) stored[k]=qs.get(k); });
+    stored.landing_page=location.href; stored.referrer=document.referrer||'';
+    try{ localStorage.setItem('arsilix_utm',JSON.stringify(stored)); }catch(e){}
+  }
+  return stored;
+})();
+
+function hubspotCookie(){
+  const m=document.cookie.match(/(?:^|;\s*)hubspotutk=([^;]+)/);
+  return m?m[1]:undefined;
+}
+
+const CORE_FIELDS=['firstname','lastname','email','company','message'];
+
+async function submitToHubSpot(formGuid, fields, retried){
+  const host = LEAD_CONFIG.hubspotRegion==='eu1' ? 'api-eu1.hsforms.com' : 'api.hsforms.com';
+  const res = await fetch(`https://${host}/submissions/v3/integration/submit/${LEAD_CONFIG.hubspotPortalId}/${formGuid}`,{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({
+      fields:Object.entries(fields).filter(([,v])=>v).map(([name,value])=>({objectTypeId:'0-1',name,value:String(value)})),
+      context:{hutk:hubspotCookie(),pageUri:location.href,pageName:document.title},
+    }),
+  });
+  // 400 usually means a custom property isn't on the HubSpot form yet: resend core fields only
+  if(res.status===400 && !retried){
+    return submitToHubSpot(formGuid, Object.fromEntries(Object.entries(fields).filter(([k])=>CORE_FIELDS.includes(k))), true);
+  }
+  if(!res.ok) throw new Error(`HubSpot ${res.status}`);
+}
+
+function mailtoFallback(subject, body){
+  location.href=`mailto:${LEAD_CONFIG.fallbackEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+}
+
+function setStatus(el, msg, kind){
+  el.textContent=msg; el.className='form-status'+(kind?' '+kind:'');
+}
+
+/* Simple fit score so hot leads stand out in the CRM (see lead-gen/README.md) */
+function scoreLead(d){
+  let score=0;
+  score += {'$5k – $15k':5,'$15k – $50k':15,'$50k – $150k':25,'$150k+':30}[d.budget]||0;
+  score += {'ASAP':20,'1–3 months':15,'3–6 months':8,'Flexible':3}[d.timeline]||0;
+  score += {'AI Development':20,'SaaS / Web App':20,'Mobile App':15,'Website':10,'Branding':5}[d.project_type]||0;
+  if(d.company) score += 10;
+  if(d.email && !/@(gmail|yahoo|hotmail|outlook|icloud|proton)\./i.test(d.email)) score += 10;
+  if((d.details||'').trim().length > 80) score += 10;
+  return score;
+}
+
+const leadForm=document.getElementById('lead-form');
+leadForm.addEventListener('submit', async e=>{
+  e.preventDefault();
+  const status=leadForm.querySelector('.form-status');
+  const btn=leadForm.querySelector('button[type=submit]');
+  const d=Object.fromEntries(new FormData(leadForm));
+  if(d.website) return; // honeypot tripped
+
+  const emailEl=leadForm.elements.email, nameEl=leadForm.elements.name;
+  [emailEl,nameEl].forEach(el=>el.classList.toggle('invalid',!el.checkValidity()));
+  if(!nameEl.checkValidity() || !emailEl.checkValidity()){
+    setStatus(status,'Please add your name and a valid email.','err'); return;
+  }
+
+  const [firstname,...rest]=d.name.trim().split(/\s+/);
+  const score=scoreLead(d);
+  const tier=score>=70?'A – Hot':score>=45?'B – Warm':'C – Nurture';
+  const summary=`Project type: ${d.project_type}\nBudget: ${d.budget}\nTimeline: ${d.timeline}\nFit score: ${score} (${tier})\n\n${d.details||''}`;
+
+  btn.disabled=true; btn.textContent='Sending…'; setStatus(status,'');
+  try{
+    if(!LEAD_CONFIG.contactFormGuid) throw new Error('HubSpot form not configured');
+    await submitToHubSpot(LEAD_CONFIG.contactFormGuid,{
+      firstname, lastname:rest.join(' '), email:d.email, company:d.company, message:summary,
+      project_type:d.project_type, budget_range:d.budget, project_timeline:d.timeline,
+      lead_fit_score:score, lead_tier:tier, ...leadAttribution,
+    });
+    btn.textContent='Message Sent ✓';
+    setStatus(status,"Thanks! We'll reply within one business day with next steps and a link to book your discovery call.",'ok');
+    leadForm.reset();
+    if(window.gtag) gtag('event','generate_lead',{value:score,lead_tier:tier});
+  }catch(err){
+    btn.disabled=false; btn.textContent='Request Proposal';
+    setStatus(status,`Opening your email app so your message still reaches us. You can also write to ${LEAD_CONFIG.fallbackEmail}.`,'err');
+    mailtoFallback(`Project inquiry — ${d.company||d.name}`,`Name: ${d.name}\nEmail: ${d.email}\nCompany: ${d.company||'-'}\n${summary}`);
+  }
+});
+
+const nlForm=document.getElementById('newsletter-form');
+nlForm.addEventListener('submit', async e=>{
+  e.preventDefault();
+  const status=document.getElementById('newsletter-status');
+  const input=nlForm.elements.email;
+  if(!input.checkValidity()){ setStatus(status,'Please enter a valid email.','err'); return; }
+  const btn=nlForm.querySelector('button'); btn.disabled=true;
+  try{
+    if(!LEAD_CONFIG.newsletterFormGuid) throw new Error('HubSpot form not configured');
+    await submitToHubSpot(LEAD_CONFIG.newsletterFormGuid,{email:input.value,...leadAttribution});
+    setStatus(status,"You're in. Watch your inbox.",'ok'); nlForm.reset();
+  }catch(err){
+    mailtoFallback('Newsletter signup',`Please add ${input.value} to the Arsilix newsletter.`);
+    setStatus(status,'Opening your email app to finish signing up.','err');
+  }finally{ btn.disabled=false; }
 });
 </script>
 </body>
