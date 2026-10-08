@@ -30,6 +30,7 @@
     color:var(--white);
     font-family:var(--font-b);
     overflow-x:hidden;
+    position:relative;
     line-height:1.5;
   }
   a{color:inherit;text-decoration:none;}
@@ -54,6 +55,7 @@
 
   /* ---------- BACKGROUND AMBIENCE ---------- */
   #stars{position:fixed;inset:0;z-index:0;pointer-events:none;opacity:.6;}
+  .bg-glows{position:absolute;inset:0;overflow:hidden;pointer-events:none;}
   .bg-glow{position:absolute;border-radius:50%;filter:blur(120px);pointer-events:none;z-index:0;}
 
   /* ---------- NAV ---------- */
@@ -167,6 +169,7 @@
   .p-step p{color:var(--gray);font-size:12.5px;line-height:1.5;}
 
   /* ---------- TECH ORBIT ---------- */
+  #tech{overflow:hidden;}
   .tech-orbit-wrap{position:relative;width:560px;height:560px;margin:0 auto;}
   .tech-center{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;z-index:2;}
   .tech-center b{font-family:var(--font-d);font-size:15px;display:block;}
@@ -278,6 +281,8 @@
   @media (max-width:640px){
     .wrap{padding:0 22px;}
     .nav-links{display:none;}
+    .nav-links.open{display:flex;flex-direction:column;align-items:flex-start;gap:0;position:absolute;top:80px;left:0;right:0;padding:8px 22px 16px;background:var(--black);border-bottom:1px solid var(--border);}
+    .nav-links.open a{display:block;padding:12px 0;font-size:15px;}
     .menu-toggle{display:flex;}
     section{padding:80px 0;}
     .services-grid,.why-grid,.portfolio-grid,.pricing-grid,.form-row{grid-template-columns:1fr;}
@@ -285,6 +290,8 @@
     .footer-grid{grid-template-columns:1fr;}
     .p-step{flex:0 0 50%;}
     .hero-btns .btn{flex:1;}
+    .tech-orbit-wrap{width:270px;height:270px;}
+    .tech-badge .pill{padding:5px 10px;font-size:10px;}
   }
   @media (prefers-reduced-motion:reduce){
     *{animation-duration:.01ms !important;animation-iteration-count:1 !important;transition-duration:.01ms !important;}
@@ -294,8 +301,10 @@
 <body>
 
 <canvas id="stars"></canvas>
+<div class="bg-glows">
 <div class="bg-glow" style="width:600px;height:600px;background:radial-gradient(circle,rgba(122,92,255,.12),transparent 70%);top:-100px;right:-150px;"></div>
 <div class="bg-glow" style="width:500px;height:500px;background:radial-gradient(circle,rgba(0,212,255,.1),transparent 70%);top:60vh;left:-150px;"></div>
+</div>
 
 <header id="header">
   <div class="wrap">
@@ -311,7 +320,7 @@
       <div class="nav-cta">
         <a href="#contact" class="btn btn-small">Book a Call</a>
       </div>
-      <button class="menu-toggle" aria-label="Menu"><span></span><span></span><span></span></button>
+      <button class="menu-toggle" aria-label="Menu" aria-expanded="false"><span></span><span></span><span></span></button>
     </nav>
   </div>
 </header>
@@ -590,9 +599,16 @@ const header = document.getElementById('header');
 window.addEventListener('scroll', ()=>{
   header.classList.toggle('scrolled', window.scrollY > 20);
 });
-document.querySelector('.menu-toggle').addEventListener('click', ()=>{
-  document.querySelector('.nav-links').classList.toggle('open');
+const menuToggle = document.querySelector('.menu-toggle');
+const navLinks = document.querySelector('.nav-links');
+menuToggle.addEventListener('click', ()=>{
+  const isOpen = navLinks.classList.toggle('open');
+  menuToggle.setAttribute('aria-expanded', isOpen);
 });
+navLinks.querySelectorAll('a').forEach(a=>a.addEventListener('click', ()=>{
+  navLinks.classList.remove('open');
+  menuToggle.setAttribute('aria-expanded', false);
+}));
 
 /* ---------- HERO ORB PARALLAX ---------- */
 const orbScene = document.getElementById('orbScene');
@@ -712,7 +728,7 @@ document.getElementById('processLine').innerHTML = process.map((p,i)=>`
 /* ---------- TECH ORBIT DATA ---------- */
 const tech = ["React","Next.js","Node.js","Python","TypeScript","AWS","Docker","TensorFlow","OpenAI","Three.js","Tailwind","GraphQL"];
 const ring = document.getElementById('techRing');
-const radius = 260;
+const radius = document.getElementById('techOrbit').offsetWidth * 260 / 560;
 tech.forEach((t,i)=>{
   const angle = (360/tech.length)*i;
   const badge = document.createElement('div');
